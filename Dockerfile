@@ -1,6 +1,6 @@
-FROM ubuntu:18.04
+FROM ubuntu:latest
 
-MAINTAINER z4yx <z4yx@users.noreply.github.com>
+MAINTAINER Benno Bielmieier "benno.bielmeier@st.othr.de"
 
 # build with "docker build --build-arg PETA_VERSION=2020.2 --build-arg PETA_RUN_FILE=petalinux-v2020.2-final-installer.run -t petalinux:2020.2 ."
 
@@ -11,55 +11,24 @@ MAINTAINER z4yx <z4yx@users.noreply.github.com>
 # RUN sed -i.bak s/archive.ubuntu.com/${UBUNTU_MIRROR}/g /etc/apt/sources.list && \
 #   dpkg --add-architecture i386 && apt-get update &&  DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 
-RUN apt-get update &&  DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
-  build-essential \
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get update && apt-get install -y -q \
   sudo \
-  tofrodos \
-  iproute2 \
-  gawk \
-  net-tools \
   expect \
-  libncurses5-dev \
-  tftpd \
-  update-inetd \
-  libssl-dev \
-  flex \
-  bison \
-  libselinux1 \
-  gnupg \
-  wget \
-  socat \
-  gcc-multilib \
-  libsdl1.2-dev \
-  libglib2.0-dev \
-  lib32z1-dev \
-  libgtk2.0-0 \
-  screen \
-  pax \
-  diffstat \
-  xvfb \
-  xterm \
-  texinfo \
-  gzip \
-  unzip \
-  cpio \
-  chrpath \
-  autoconf \
-  lsb-release \
-  libtool \
-  libtool-bin \
+  tzdata \
   locales \
-  kmod \
-  git \
   rsync \
-  bc \
-  u-boot-tools \
-  python \
+  libncurses5 \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
+ADD https://www.xilinx.com/Attachment/plnx-env-setup.sh /
+RUN chmod +x /plnx-env-setup.sh
+RUN /plnx-env-setup.sh
+
 RUN dpkg --add-architecture i386 &&  apt-get update &&  \
-      DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
+      apt-get install -y -q \
       zlib1g:i386 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -70,14 +39,14 @@ ARG PETA_RUN_FILE
 
 RUN locale-gen en_US.UTF-8 && update-locale
 
-#make a Vivado user
+# Make a Vivado user
 RUN adduser --disabled-password --gecos '' vivado && \
   usermod -aG sudo vivado && \
   echo "vivado ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 COPY accept-eula.sh ${PETA_RUN_FILE} /
 
-# run the install
+# Run the install
 RUN chmod a+rx /${PETA_RUN_FILE} && \
   chmod a+rx /accept-eula.sh && \
   mkdir -p /opt/Xilinx && \
@@ -86,7 +55,7 @@ RUN chmod a+rx /${PETA_RUN_FILE} && \
   sudo -u vivado -i /accept-eula.sh /${PETA_RUN_FILE} /opt/Xilinx/petalinux && \
   rm -f /${PETA_RUN_FILE} /accept-eula.sh
 
-# make /bin/sh symlink to bash instead of dash:
+# Make /bin/sh symlink to bash instead of dash:
 RUN echo "dash dash/sh boolean false" | debconf-set-selections
 RUN DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dash
 
@@ -96,5 +65,9 @@ ENV LANG en_US.UTF-8
 RUN mkdir /home/vivado/project
 WORKDIR /home/vivado/project
 
-#add vivado tools to path
+# Add vivado tools to path
 RUN echo "source /opt/Xilinx/petalinux/settings.sh" >> /home/vivado/.bashrc
+
+ARG PETA_BSP
+
+COPY ${PETA_BSP} /home/vivado
