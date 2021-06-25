@@ -1,1 +1,4 @@
+# Petalinux files
+# It is not allowed to distribute them here (-> TOS)
 petalinux-*.run
+*.bsp
