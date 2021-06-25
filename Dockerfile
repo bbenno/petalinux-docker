@@ -68,6 +68,9 @@ WORKDIR /home/vivado/project
 # Add vivado tools to path
 RUN echo "source /opt/Xilinx/petalinux/settings.sh" >> /home/vivado/.bashrc
 
+# Disable telemetry
+RUN petalinux-util --webtalk off
+
 ARG PETA_BSP
 
 COPY ${PETA_BSP} /home/vivado
